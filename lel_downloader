@@ -1,0 +1,82 @@
+#!/bin/bash
+
+if [ "$1" = "" ]; then
+    echo "Usage: `basename $0` <manga url>"
+    exit 1
+fi
+
+echo "Lecture en ligne downloader"
+echo "Télécharger des mangas entiers depuis le site de Lecture en ligne !"
+
+PRE=$(echo `expr $1 : "\(.*\).$"`)
+LOC=$(extract2 "$PRE")
+LOC=`echo ${LOC:1}`
+BASE="http://www.lecture-en-ligne.com"
+BASIMAGE="images/mangas"
+i=1
+
+echo "Downloading to $LOC"
+
+if [ ! -d $LOC ]; then
+    mkdir $LOC
+fi
+
+cd $LOC
+
+TMP=`mktemp`
+TMP2=`mktemp`
+TMP3=`mktemp`
+TMP4=`mktemp`
+
+wget -q -O "$TMP" "$1"
+
+tmp=$(sed -ns '1~1p' $TMP)
+
+test=`echo $tmp | egrep -o "$LOC[A-Za-z0-9_/]*(.html)"`
+if [ "$test" != "" ]; then
+    echo "$test" > $TMP2
+fi
+
+while read chapter
+do
+    bluh=`echo $chapter | egrep -o "$LOC[///][0-9]*"`
+    bluh=`echo "${bluh#$LOC/}"`
+    nomdossier=$bluh
+    
+    if [ ! -d "$nomdossier" ]; then
+        mkdir "$nomdossier"
+    fi
+    
+    cd $nomdossier
+    
+    wget -q -O out "$BASE/$chapter"
+    
+    tmp=$(sed -ns '1~1p' out)
+    url=`echo $tmp | egrep -o "$BASE/$LOC/$nomdossier/[A-Za-z0-9_/]*(.html)"`
+    echo "$url" > $TMP3
+    sort -u $TMP3 > $TMP4
+    
+    while read page
+    do
+        wget -q -O pou "$page"
+        tmp=$(sed -ns '1~1p' pou)
+        
+        test=\'
+        extension=`echo $tmp | egrep -o "(current_ext = ')[A-Za-z]*(')"`
+        extension=${extension: -4}
+        extension=`echo "${extension%$test}"`
+        
+        url=`echo $tmp | egrep -o "($BASIMAGE/$LOC/$nomdossier)/[A-Za-z0-9_/]*(.$extension)"`
+        wget -q "$BASE/$url"
+    
+        rm pou
+    done < $TMP4
+    rm out
+    cd ..
+    
+done < $TMP2
+
+rm $TMP
+rm $TMP2
+rm $TMP3
+rm $TMP4

@@ -1,0 +1,173 @@
+#!/bin/bash
+
+if [ "$1" = "" ]; then
+    echo "Usage: `basename $0` <manga url>"
+    exit 1
+fi
+
+echo "Manga Reader Donwloader"
+echo "Donwloading full manga from Manga Reader"
+
+type=`echo "$1" | egrep '(html)'`
+if [ "$type" != "" ]; then 
+    LOC=$(extract "$1")
+
+    echo "Donwloading to $LOC"
+
+    if [ ! -d $LOC ]; then
+        mkdir $LOC
+    fi
+
+    cd $LOC
+
+    TMP=`mktemp`
+    TMP2=`mktemp`
+
+    wget -q -O "$TMP" "$1"
+        
+    tmp=$(sed -ns '144~1p' $TMP)
+    test=`echo $tmp | egrep -o '[A-Za-z0-9_-///^\n]*(.html)'`
+
+    if [ "$test" != "" ]; then
+        echo "$test" > $TMP2
+    fi
+
+    while read line 
+    do 
+        truc=$(extract "$line")
+        base="$truc.html"
+        if [ ! -f "$truc/$base" ]; then
+            wget -q "http://www.mangareader.net$line"
+        fi
+        
+        if [ ! -d $truc ]; then
+            mkdir $truc
+        fi
+        
+        if [ -f $base ]; then
+            mv $base $truc
+        fi
+        cd $truc
+        
+        tmp2=$(sed -ns '113~1p' $base)
+        test2=`echo $tmp2 | egrep -o '(<option value=")[A-Za-z0-9_-///^\n]*(.html)'`
+        test2=`echo $test2 | egrep -o '[A-Za-z0-9_-///^\n]*(.html)'`
+        if [ "$test2" != "" ]; then
+            touch chapter
+            echo "$test2" > chapter
+        fi
+        
+        while read page
+        do  
+            if [ -f $base ]; then
+                rm $base
+            fi
+            
+            wget -q "http://www.mangareader.net$page"
+            
+            tmp3=$(sed -ns '33~1p' $base)
+            test3=`echo $tmp3 | egrep -o '(src=")[A-Za-z0-9_-\\\]*(.jpg)'`
+            test3=`echo ${test3:5}`
+            
+            if [ "$test3" != "" ]; then
+                test4=$(test-img $test3)
+                if [ "$test4" != "" ]; then
+                    if [ ! -f $test4 ]; then
+                        echo "Downloading $test3"
+                        wget -q $test3
+                    fi
+                fi
+            fi
+            
+            rm $base
+        done < chapter
+        rm chapter
+        cd ..
+
+    done < $TMP2
+        
+    rm -rf $TMP
+    rm -rf $TMP2
+
+else
+
+    LOC=$(extract3 "$1")
+
+    echo "Donwloading to $LOC"
+
+    if [ ! -d $LOC ]; then
+        mkdir $LOC
+    fi
+
+    cd $LOC
+
+    TMP=`mktemp`
+    TMP2=`mktemp`
+    TMP3=`mktemp`
+    TMP4=`mktemp`
+
+    wget -q -O "$TMP" "$1"
+        
+    tmp=$(sed -ns '144~1p' $TMP)
+    test=`echo $tmp | egrep -o "[///]$LOC*[///]*[A-Za-z0-9_-]*"`
+
+    if [ "$test" != "" ]; then
+        echo "$test" > $TMP2
+    fi
+
+    while read line 
+    do 
+        truc=$(extract3 "$line")
+        if [ ! -f "$truc/$truc" ]; then
+            wget -q -O "$TMP4" "http://www.mangareader.net$line" 
+        fi
+        
+        if [ ! -d $truc ]; then
+            mkdir $truc
+        fi
+        cd $truc
+        
+        tmp2=$(sed -ns '113~1p' $TMP4)
+        test2=`echo $tmp2 | egrep -o "(<option value=\")[A-Za-z0-9_-///^\n]*(\">)"`
+        tmp4=`echo $test2 | egrep -o '([^"])[A-Za-z0-9_-///^\n]*(">)'`
+        tmp5=`echo $tmp4 | egrep -o '[A-Za-z0-9_-///^\n]*[^">]'`
+        
+        if [ "$tmp5" != "" ]; then
+            touch chapter
+            echo "$tmp5" > chapter
+        fi
+        
+        while read page
+        do  
+            wget -q -O "$TMP3" "http://www.mangareader.net$page"
+            
+            tmp3=$(sed -ns '33~1p' $TMP3)
+            test3=`echo $tmp3 | egrep -o "(src=\")[A-Za-z0-9_-\\\]*($LOC)*(.jpg)"`
+            test3=`echo ${test3:5}`
+            
+            if [ "$test3" != "" ]; then
+                test4=$(test-img $test3)
+                if [ "$test4" != "" ]; then
+                    if [ ! -f $test4 ]; then
+                        echo "Downloading $test3"
+                        wget -q $test3
+                    fi
+                fi
+            fi
+            
+            rm $base
+        done < chapter
+        rm chapter
+        cd ..
+        rm -rf $TMP4
+        
+    done < $TMP2
+        
+    rm -rf $TMP
+    rm -rf $TMP2
+    rm -rf $TMP3
+fi
+
+exit
+
+    

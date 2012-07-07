@@ -1,0 +1,90 @@
+#!/bin/bash
+
+if [ "$1" = "" ]; then
+    echo "Usage: `basename $0` <manga url>"
+    exit 1
+fi
+
+echo "Citymanga downloader"
+echo "Donwloading full manga from Citymanga"
+
+PRE=$(echo `expr $1 : "\(.*\).$"`)
+LOC=$(extract2 "$PRE")
+LOC=`echo ${LOC:1}`
+
+echo "Downloading to $LOC"
+
+if [ ! -d $LOC ]; then
+    mkdir $LOC
+fi
+
+cd $LOC
+
+TMP=`mktemp`
+TMP2=`mktemp`
+TMP3=`mktemp`
+
+wget -q -O "$TMP" "$1"
+    
+tmp=$(sed -ns '1~1p' $TMP)
+test=`echo $tmp | egrep -o "(http://www.citymanga.com)[///]$LOC[///]*([A-Za-z0-9_-.///^\n]*)"`
+if [ "$test" != "" ]; then
+    echo "$test" > $TMP2
+fi
+
+while read chapter
+do
+    PRE=$(echo `expr $chapter : "\(.*\).$"`)
+	nomdossier=$(extract2 "$PRE")
+	nomdossier=`echo ${nomdossier:1}`
+    
+    if [ ! -d $nomdossier ]; then
+        mkdir $nomdossier
+    fi
+    
+    cd $nomdossier
+    
+    wget -q -O "$TMP3" "$chapter"
+    
+    tmp2=$(sed -ns '92p' $TMP3)
+    tmp3=`echo $tmp2 | egrep -o "(<option value=\")[A-Za-z0-9_-///^\n]*(\">)"`
+    tmp4=`echo $tmp3 | egrep -o '([^"])[A-Za-z0-9_-///^\n]*(">)'`
+    tmp5=`echo $tmp4 | egrep -o '[A-Za-z0-9_-///^\n]*[^">]'`
+    echo "$tmp5" > out1
+    tmp6=$(sed -n '1,${p;n;}' out1)
+    if [ "$tmp6" != "" ]; then
+        echo "$tmp6" > page
+        rm out1
+    fi
+    
+    while read image
+    do
+        touch blah
+        wget -q -O blah "http://www.citymanga.com/$LOC/$nomdossier/$image/"
+            
+        get=$(sed -ns '92~1p' blah)
+        img=`echo $get | egrep -o "(/files/images/)$LOC(/)*([A-Za-z0-9_-.///^\n]*)(.jpg)"`
+            
+        if [ "$img" != "" ]; then
+            test=$(test-img $img)
+            if [ "$test" != "" ]; then
+                 if [ ! -f $test ]; then
+                     echo "Downloading http://www.citymanga.com$img"
+                     wget -q "http://www.citymanga.com$img"
+                 fi
+             fi
+        fi
+            
+        rm blah
+    done < page
+    
+    rm page
+    cd ..
+done < $TMP2
+
+rm -r $LOC
+rm $TMP
+rm $TMP2
+rm $TMP3
+
+exit

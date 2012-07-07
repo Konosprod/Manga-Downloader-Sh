@@ -1,0 +1,70 @@
+#! /bin/bash
+
+ERRURL="zenity --error --text \"Vous devez entrer une URL.\""
+ERRDIR="zenity --error --text \"Vous devez choisir un répertoire.\""
+ERRMANGA="zenity --error --text \"Vous devez choisir un manga de citymanga, mangareader ou de lecture-en-ligne\""
+CHOSEDIR="zenity --file-selection --directory --title=\"Sélectionnez un répertoire\""
+SHUT="zenity  --list  --text \"Éteindre l'ordinateur à la fin du téléchargement ?\" --radiolist  --column \"Cochez\" --column \"Choix\" TRUE Non FALSE Oui"
+
+URL=$(zenity --entry --title="URL" --text="Entrez une URL")
+         
+if [ "$URL" == "" ]; then 
+    eval $ERRURL
+     exit
+fi
+
+DIR=$(eval $CHOSEDIR)
+
+if [ "$DIR" == "" ]; then
+    eval $ERRDIR 
+    exit
+fi
+
+cd $DIR
+
+RET=$(eval $SHUT)
+
+TYPE=`echo $URL |  egrep -o "mangareader"`
+
+if [ "$TYPE" != "" ]; then
+    exec 3> >(zenity --notification --window-icon="info" --window-icon="info" --listen --text="Downloading...")
+
+    echo "message:Downloading from $URL" >&3
+    mangareader_downloader "$URL"
+    echo "$URL Downloaded !" >&3
+    exec 3>&-
+    
+    if [ "$RET" == "Oui" ]; then
+        dbus-send --system --print-reply --dest="org.freedesktop.Hal" /org/freedesktop/Hal/devices/computer org.freedesktop.Hal.Device.SystemPowerManagement.Shutdown
+    fi
+else
+    TYPE=`echo $URL | egrep -o "citymanga"`
+    if [ "$TYPE" != "" ]; then
+        exec 3> >(zenity --notification --window-icon="info" --window-icon="info" --listen --text="Downloading...")
+
+        echo "message:Downloading from $URL" >&3
+        citymanga_downloader "$URL"
+        echo "$URL Downloaded !" >&3
+        exec 3>&-
+        if [ "$RET" == "Oui" ]; then
+            dbus-send --system --print-reply --dest="org.freedesktop.Hal" /org/freedesktop/Hal/devices/computer org.freedesktop.Hal.Device.SystemPowerManagement.Shutdown
+        fi
+
+    else
+        TYPE=`echo $URL | egrep -o "lecture-en-ligne"`
+        if [ "$TYPE" != "" ]; then
+            exec 3> >(zenity --notification --window-icon="info" --window-icon="info" --listen --text="Downloading...")
+
+            echo "message:Downloading from $URL" >&3
+            lel_downloader "$URL"
+            echo "$URL Downloaded !" >&3
+            exec 3>&-
+            if [ "$RET" == "Oui" ]; then
+                dbus-send --system --print-reply --dest="org.freedesktop.Hal" /org/freedesktop/Hal/devices/computer org.freedesktop.Hal.Device.SystemPowerManagement.Shutdown
+            fi
+        else
+            eval $ERRMANGA
+            exit
+        fi
+    fi
+fi
