@@ -78,8 +78,6 @@ if [ "$type" != "" ]; then
                     fi
                 fi
             fi
-            
-            rm $base
         done < chapter
         rm chapter
         cd ..
@@ -155,7 +153,6 @@ else
                 fi
             fi
             
-            rm $base
         done < chapter
         rm chapter
         cd ..
