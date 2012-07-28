@@ -46,7 +46,7 @@ do
     
     wget -q -O "$TMP3" "$chapter"
     
-    tmp2=$(sed -ns '92p' $TMP3)
+    tmp2=$(sed -ns '108p' $TMP3)
     tmp3=`echo $tmp2 | egrep -o "(<option value=\")[A-Za-z0-9_-///^\n]*(\">)"`
     tmp4=`echo $tmp3 | egrep -o '([^"])[A-Za-z0-9_-///^\n]*(">)'`
     tmp5=`echo $tmp4 | egrep -o '[A-Za-z0-9_-///^\n]*[^">]'`
@@ -83,8 +83,9 @@ do
 done < $TMP2
 
 rm -r $LOC
-rm $TMP
+
 rm $TMP2
 rm $TMP3
+rm $TMP
 
 exit
