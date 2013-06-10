@@ -1,3 +1,8 @@
+Manga-Downloader
+================
+
+Un crawler de scans de certains sites de scan-trad
+
 Comment compiler ?
 
 - Téléchargez et extrayez l'archive quelque part dans votre ordinateur
