@@ -20,3 +20,4 @@ pouvez passer par les scripts qui sont:
 - lel_downloader
 - citymanga_downloader
 - mangareader_downloader
+- 
